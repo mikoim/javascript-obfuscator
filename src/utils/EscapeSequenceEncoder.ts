@@ -1,7 +1,8 @@
 import { injectable } from 'inversify';
 
 import { IEscapeSequenceEncoder } from '../interfaces/utils/IEscapeSequenceEncoder';
-
+//import { LoggingPrefix } from '../enums/logger/LoggingPrefix';
+//import { Logger } from '../logger/Logger';
 @injectable()
 export class EscapeSequenceEncoder implements IEscapeSequenceEncoder {
     /**
@@ -17,6 +18,7 @@ export class EscapeSequenceEncoder implements IEscapeSequenceEncoder {
     public encode (string: string, encodeAllSymbols: boolean): string {
         const cacheKey: string = `${string}-${String(encodeAllSymbols)}`;
 
+		
         if (this.stringsCache.has(cacheKey)) {
             return <string>this.stringsCache.get(cacheKey);
         }
@@ -25,13 +27,22 @@ export class EscapeSequenceEncoder implements IEscapeSequenceEncoder {
         const replaceRegExp: RegExp = new RegExp('[\\s\\S]', 'g');
         const escapeSequenceRegExp: RegExp = new RegExp('[\'\"\\\\\\s]');
         const regExp: RegExp = new RegExp('[\\x00-\\x7F]');
-
+		
         let prefix: string;
         let template: string;
 
+		
         const result: string = string.replace(replaceRegExp, (character: string): string => {
+						
             if (!encodeAllSymbols && !escapeSequenceRegExp.exec(character)) {
-                return character;
+				const isAscii = regExp.test(character);
+				if(isAscii) {
+					return character;
+				}else {
+					prefix = '\\u';
+					template = '0000';
+					return `${prefix}${(template + character.charCodeAt(0).toString(radix)).slice(-template.length)}`;	
+				}
             }
 
             if (regExp.exec(character)) {
